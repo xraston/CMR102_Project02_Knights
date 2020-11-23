@@ -2,46 +2,110 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Events;
+using Vuforia;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 public class UIManager : MonoBehaviour
 {
-    public GameObject playerOneCanvas; // a reference to the players canvas
-    public GameObject playerOneControls; // a reference to the players control buttons
-    public GameObject playerOneHelpText; // a reference to the players help text
+    public TrackableBehaviour trackableBehaviour; // a reference to our AR marker script
+    public bool trackerOneFound = false; // have we detected the first tracker?
+    public bool trackerTwoFound = false; // have we detected the second tracker?
 
-    public GameObject playerTwoCanvas; // a reference to the players canvas object
-    public GameObject playerTwoControls; // a reference to the players control buttons
+    public GameObject playerOneHelpText; // a reference to the players help text
     public GameObject playerTwoHelpText; // a reference to the players help text
 
-    public KnightManager knightManager;
-
-    private void ShowHideCanvas()
+    // Start is called before the first frame update
+    void Start()
     {
-        // when tracking is found show the canvas
-
-        // if the knight is in the idle state, lower the opacity of the controls
-        // if the knight is in the fight state, show the controls
+        // if the reference has been assigned
+        if (trackableBehaviour != null)
+        {
+            // trackableBehaviour.RegisterTrackableEventHandler(this);
+        }
+        OnTrackerOneLost(); // hide knight 1 and pause game and audio
+        OnTrackerTwoLost(); // hide knight 2
     }
 
-    private void DisableControls()
+    // Update is called once per frame
+    void Update()
     {
-        // knightManager.currentCharacterState = knightManager.CharacterStates.Start;
+
     }
 
-    private void EnableControls()
+    /// <summary>
+    /// A Vuforia function we need to implement to detect changes with the makers
+    /// </summary>
+    /// <param name="previousStatus"></param>
+    /// <param name="newStatus"></param>
+    public void OnTrackableStateChanged(TrackableBehaviour.Status previousStatus, TrackableBehaviour.Status newStatus)
     {
-        // CanvasObject.GetComponent<Canvas> ().enabled = true; 
+        // checking the current status of the marker
+        if (newStatus == TrackableBehaviour.Status.DETECTED || newStatus == TrackableBehaviour.Status.TRACKED || newStatus == TrackableBehaviour.Status.EXTENDED_TRACKED)
+        {
+            if (trackerOneFound == true)
+            {
+                trackerOneFound = false;
+                OnTrackerOneFound(); // we got tracking
+            }
+            if (trackerTwoFound == true)
+            {
+                trackerTwoFound = false;
+                OnTrackerTwoFound(); // we got tracking
+            }
+        }
+        else
+        {
+            if (trackerOneFound == false)
+            {
+                trackerOneFound = true;
+                OnTrackerOneLost(); // we lost tracking
+            }
+            if (trackerTwoFound == false)
+            {
+                trackerTwoFound = true;
+                OnTrackerTwoLost(); // we lost tracking
+            }
+        }
     }
 
-    private void UpdateHealthBar()
+    /// <summary>
+    /// what we want to do when marker ONE is found
+    /// </summary>
+    private void OnTrackerOneFound()
     {
-        // gets the knight's max health and compares it to the current current health 
+        // enable knight 1 and it's health bar
+        Time.timeScale = 1; // resume the game
+        AudioListener.pause = false; // resume the audio
 
-        // moves the green box position left as a percentage of the missing health
+    }
 
-        // if current health reaches 0 or less it stops moving
+    /// <summary>
+    /// what we want to do when marker ONE is lost
+    /// </summary>
+    private void OnTrackerOneLost()
+    {
+        /// disable knight 1 and it's health bar
+        Time.timeScale = 0; // pause the game
+        AudioListener.pause = true; // pause the audio
+    }
 
-        // if reset button is pressed then move the green box to the starting postion
+    /// <summary>
+    /// what we want to do when marker TWO is found
+    /// </summary>
+    private void OnTrackerTwoFound()
+    {
+        // enable knight 2, it's health bar and the game buttons
+
+    }
+
+    /// <summary>
+    /// what we want to do when marker TWO is lost
+    /// </summary>
+    private void OnTrackerTwoLost()
+    {
+        // disable knight 2, it's health bar and the game buttons
     }
 
     private void PausePlayButton()
