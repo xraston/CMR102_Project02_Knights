@@ -9,7 +9,7 @@ public class AnimationControls : MonoBehaviour
 
     public float moveSpeed = 1.75f; // defines the move speed per frame
 
-    public GameObject guiBlocker;
+    public GameObject guiBlocker; // a UI element that temporarily blocks input on the screen during animations
 
     public bool walkForwardButton = false;
     public bool walkBackwardButton = false;
@@ -19,6 +19,7 @@ public class AnimationControls : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // walk controls may be re-implemented in future versions
         if(walkForwardButton == true)
         {
             animationHandler.CurrentState = AnimationHandler.AnimationState.WALKING;
@@ -45,6 +46,7 @@ public class AnimationControls : MonoBehaviour
         }
     }
 
+    // walk controls may be re-implemented in future versions
     public void AnimationWalkForwardTrue()
     {
         walkForwardButton = true;
@@ -54,7 +56,6 @@ public class AnimationControls : MonoBehaviour
         walkForwardButton = false;
         ResetToIdle();
     }
-
     public void AnimationWalkBackwardTrue()
     {
         walkBackwardButton = true;
@@ -73,7 +74,6 @@ public class AnimationControls : MonoBehaviour
         walkLeftButton = false;
         ResetToIdle();
     }
-
     public void AnimationWalkRightTrue()
     {
         walkRightButton = true;
@@ -84,15 +84,15 @@ public class AnimationControls : MonoBehaviour
         ResetToIdle();
     }
 
-    public void AnimationAttackLight()
+    public void AnimationAttackLight() // triggers the light attack
     {
-        animationHandler.CurrentState = AnimationHandler.AnimationState.ATTACKLIGHT;
-        guiBlocker.SetActive(true);
-        Invoke("UnblockUI", 1);
-        Invoke("ResetToIdle", 1);
+        animationHandler.CurrentState = AnimationHandler.AnimationState.ATTACKLIGHT; // calls the light attack animation state
+        guiBlocker.SetActive(true); // activates the UI element to block input
+        Invoke("UnblockUI", 1); // deactivates the UI block after 1 second
+        Invoke("ResetToIdle", 1); // resets the animation state to Idle after 1 second
     }
 
-    public void AnimationAttackHeavy()
+    public void AnimationAttackHeavy() // triggers the heavy attack
     {
         animationHandler.CurrentState = AnimationHandler.AnimationState.ATTACKHEAVY;
         guiBlocker.SetActive(true);
@@ -100,7 +100,7 @@ public class AnimationControls : MonoBehaviour
         Invoke("ResetToIdle", 1);
     }
 
-    public void AnimationTaunting()
+    public void AnimationTaunting() // triggers the taunt
     {
         animationHandler.CurrentState = AnimationHandler.AnimationState.TAUNTING;
         guiBlocker.SetActive(true);
@@ -108,18 +108,18 @@ public class AnimationControls : MonoBehaviour
         Invoke("ResetToIdle", 2);
     }
 
-    public void AnimationBlocking()
+    public void AnimationBlocking() // triggers the block
     {
         animationHandler.CurrentState = AnimationHandler.AnimationState.BLOCKING;
     }
 
-    // resets animation state to idle
-    public void ResetToIdle()
+
+    public void ResetToIdle() // resets animation state to idle
     {
         animationHandler.CurrentState = AnimationHandler.AnimationState.IDLE;
     }
 
-    public void UnblockUI()
+    public void UnblockUI() // deactivates the temporary UI input blocker
     {
         guiBlocker.SetActive(false);
     }

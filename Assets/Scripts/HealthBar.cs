@@ -6,7 +6,7 @@ public class HealthBar : MonoBehaviour
 {
     public KnightManager knightManagerB;
     RectTransform m_RectTransform;
-   float m_XAxis;
+    float m_XAxis;
 
     // Start is called before the first frame update
     void Start()

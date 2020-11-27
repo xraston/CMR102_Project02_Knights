@@ -5,71 +5,94 @@ using Vuforia;
 
 public class KnightManager : MonoBehaviour
 {
-    // animations
-    public AnimationHandler animationHandler; // a reference to the animation handler script
-    public Animator knightAnimator; // a reference to the animator
+    // Animators and the animation script references
+    public AnimationHandler animationHandler; // the animation handler script
+    public Animator knightAnimator; // the animator
 
     // UI Canvas
-    public GameObject knightMoveControls; // a reference to the UI controls
-    public GameObject knightCombatControls; // a reference to the UI controls
-    public GameObject canvasHelpText; // a reference to the players help textxt
-    private bool helpText = false; // switches the help text on and off
+    public GameObject knightCombatControls; // the Knights' combat buttons
+    public GameObject trackerHelp; // the tracker instructions
 
     // blood particle effect
-    public GameObject bloodPrefab;
-    public Transform bloodPosition;
+    public GameObject bloodPrefab; // the blood effect prefab
+    public Transform bloodPosition; // the postion & rotation the particle start from
 
     // sound effects
-    public AudioSource audioSource; // reference to the knight's audio
-    public AudioSource swordSwoosh;
-    public AudioSource armourRustle;
-    public AudioClip bodyhit;
-    public AudioClip shieldhit;
-    public AudioClip sworddraw;
+    public AudioSource audioSource; // the knight's audio
+    public AudioSource swordSwoosh; // the sword's audio
+    public AudioClip bodyhit; // the on hit sound
+    public AudioClip shieldhit; // the shield hit sound
+    public AudioClip sworddraw; // the sword draw sound
     // voice lines
-    public AudioSource voiceStart;
-    public AudioSource voiceIdle;
-    public AudioSource voiceHit;
-    public AudioSource voiceVictory;
-    public AudioSource voiceDeath;
-    public AudioSource voiceTaunt;
+    public AudioSource voiceStart; // voiceline at the start
+    public AudioSource voiceIdle; // voice for idle's extra animation 
+    public AudioSource voiceHit; // plays when the Knight gets hit
+    public AudioSource voiceVictory; // plays when the Knight wins
+    public AudioSource voiceDeath; // plays when the Knight dies
+    public AudioSource voiceTaunt; // plays when the taunt button is pressed
+    public AudioSource voiceBlock; // plays when the taunt button is held
 
     // the opposing knight
-    public GameObject opponent;
-    public int distanceToDetectOpponent;
+    public GameObject opponent; // the opposite knight
+    public float distanceToDetectOpponent; // used to measure the distance between Knights
 
     // health and damage variables
-    Vector3 startPosition;
     public GameObject knightHealthBar; // a reference to the health bar
-    public int knightHealthCurrent;
-    public int knightHealthTotal;
-    private int attackLightDMG;
-    private int attackHeavyDMG;
-    public int healAmount;
-    public Sword sword; // a reference to the sword collider
+    public int knightHealthCurrent; // the current health that is updated for damage
+    public int knightHealthTotal; // the starting health pool
+    private int attackLightDMG; // unused
+    private int attackHeavyDMG; // unused
+    public int blockAmount = 20; // damage reduction when the knight is blocking
 
-    // start & idle variables
-    public float idleTime = 5; // the time the knights waits until the alternative animation plays
-    private float currentIdleWaitTime; // the the current amount of time the knight has idled
-    public float startIdleTime = 5; // the time the knights waits until the alternative animation plays
-    private float currentStartWaitTime; // the the current amount of time the knight has idled
+    // sword references
+    public Sword sword; // the sword's script
+    public GameObject swordCollider; // the sword's collider
+
+    // idle animation variables
+    public float idleTime = 5; // the time the Knights waits until the alternative animation plays
+    private float currentIdleWaitTime; // the the current amount of time the Knight has idled
 
     // the different states the knight can be in
     public enum CharacterStates {Start, Idle, Walking, Attacking, Taunting, Blocking, Hit, End }
-    public CharacterStates currentCharacterState; // the current that that the character is in
+    public CharacterStates currentCharacterState; // the current state that the Knight is in
+
+    // reference to the knight's tracker
+    public GameObject knightTracker; // the image target
+    public GameManager gameManager; // the game manager
+    private bool trackingFound; // is the image target found or lost?
 
 
     // Start is called before the first frame update
     void Start()
     {
-        knightAnimator.Play("Sword_Draw");
-        currentCharacterState = CharacterStates.Start; // set the character by default to idle
-        voiceStart.Play();
+
+    }
+
+    private void OnDisable() // changes the tracker's status
+    {
+        trackingFound = false;
+    }
+
+    public void KnightFound() // if the Knight's tracker is found
+    {
+        if (trackingFound != true)
+        {
+            trackingFound = true;
+        }
+        else
+        {
+            return;
+        }
+        knightAnimator.Play("Sword_Draw"); // play the sword draw animation at the start
+        audioSource.PlayOneShot(sworddraw); // play the sword draw sound
+        voiceStart.Play(); // play the opening voiceline
         animationHandler.CurrentState = AnimationHandler.AnimationState.START; // set the animation state to idle
-        startPosition = transform.position; // change to ontracker?
-        currentIdleWaitTime = Time.time + idleTime;
-        currentStartWaitTime = Time.time + startIdleTime + AttackDamage(1, 3);
-        audioSource.PlayOneShot(sworddraw);
+        Invoke("EnterAnimation", 1);
+        if (currentCharacterState == CharacterStates.Taunting || currentCharacterState == CharacterStates.Attacking || currentCharacterState == CharacterStates.Blocking)
+        {
+            //knightAnimator.SetBool("ExitAnim2", true);
+            InterruptAnimation(); // resets the transition conditions 
+        }
     }
 
     // Update is called once per frame
@@ -78,65 +101,71 @@ public class KnightManager : MonoBehaviour
         // references to the character states
         HandleStartState();
         HandleIdleState();
-        HandleWalkingState();
         HandleAttackingState();
-        // HandleBlockingState();
+        HandleBlockingState();
         HandleTauntingState();
         HandleEndState();
     }
 
-    private void HandleStartState() // ADD on tracker start & ADD Animation
+    /// <summary>
+    /// Handles the Start Animation State
+    /// </summary>
+    private void HandleStartState()
     {
-        if (animationHandler.CurrentState == AnimationHandler.AnimationState.START)
+        if (animationHandler.CurrentState == AnimationHandler.AnimationState.START) // if the character enters the Start animation state
         {
             currentCharacterState = CharacterStates.Start; // set the character state to start
+            swordCollider.SetActive(true); // activates the sword collider if it is off
             // manage the UI
-            knightHealthBar.SetActive(true);
-            knightMoveControls.SetActive(true);
-            knightCombatControls.SetActive(false);
+            knightHealthBar.SetActive(true); // activates the health bar
+            knightCombatControls.SetActive(false); // deactivates the combar controls if the Knight is too far away
+            trackerHelp.SetActive(true); // displayers the 'move trackers closer' help text
             // when the knight gets close enough to the opponent enter the Idle State
             if (Vector3.Distance(transform.position, opponent.transform.position) < distanceToDetectOpponent)
             {
-                animationHandler.CurrentState = AnimationHandler.AnimationState.IDLE;
+                knightAnimator.SetBool("Idle", true);
+                animationHandler.CurrentState = AnimationHandler.AnimationState.IDLE; // moves to the Idle state
             }
-            // plays extra animations
-            else if (Time.time >= currentStartWaitTime)
+            if (currentCharacterState == CharacterStates.Taunting || currentCharacterState == CharacterStates.Attacking || currentCharacterState == CharacterStates.Blocking)
             {
-                knightAnimator.SetBool("ExitAnim2", false);
-                Invoke("ExitAnimation", 5);
-                currentStartWaitTime = Time.time + idleTime + 5;
+                //knightAnimator.SetBool("ExitAnim2", true);
+                InterruptAnimation(); // resets the transition conditions 
             }
+            // Invoke("ExitAnimation", 6); // exits the extra animation after it's finished playing
         }
     }
 
     private void HandleIdleState() // FIX ANIMATION
     {   
-        if (animationHandler.CurrentState == AnimationHandler.AnimationState.IDLE)
+        if (animationHandler.CurrentState == AnimationHandler.AnimationState.IDLE) // if the character enters the Idle animation state
         {
             currentCharacterState = CharacterStates.Idle; // set the character state to idle
+            swordCollider.SetActive(true); // activates the sword
             // manage the UI
-            knightHealthBar.SetActive(true);
-            knightMoveControls.SetActive(true);
-            knightCombatControls.SetActive(true);
+            trackerHelp.SetActive(false); // deactivates the tracker help text
+            knightCombatControls.SetActive(true); // activates the combat controls
             // always look at the opponent
-            Vector3 directionToLookAt = opponent.transform.position - transform.position;
+            Vector3 directionToLookAt = opponent.transform.position - transform.position; // updates the postion of the Knight (for movement)
             directionToLookAt.y = 0; // doesn't change the Y postion
             Quaternion rotationOfDirection = Quaternion.LookRotation(directionToLookAt); // get a rotation value the character can look towards
             transform.rotation = rotationOfDirection; // set the current rotation to face the target position
-            // plays extra animations
-            if (Time.time >= currentIdleWaitTime)
+            // allows combat buttons to interrupt the animation state
+            if (currentCharacterState == CharacterStates.Taunting || currentCharacterState == CharacterStates.Attacking || currentCharacterState == CharacterStates.Blocking)
             {
-                knightAnimator.Play("Taunt_Point");
-                voiceIdle.Play();
-                //Invoke("EnterAnimation", 1);
+                InterruptAnimation(); // resets the transition conditions 
+            }
+            // plays extra animations
+            if (Time.time >= currentIdleWaitTime) // if enough time has passed
+            {
+                knightAnimator.Play("Taunt_Point"); // the Knights point at each other
+                voiceIdle.Play(); // plays the Idle voiceline
+                // allows combat buttons to interrupt this extra animation
                 if (currentCharacterState == CharacterStates.Taunting || currentCharacterState == CharacterStates.Attacking || currentCharacterState == CharacterStates.Blocking)
                     {
-                        // make it so combat buttons can interrupt
                         knightAnimator.SetBool("ExitAnim1", true);
-                        InterruptAnimation();
+                        InterruptAnimation(); // resets the transition conditions 
                     }
-                    // Invoke("ExitAnimation", 2);
-                    currentIdleWaitTime = Time.time + idleTime + 5;
+                currentIdleWaitTime = Time.time + idleTime + 6; // updates the time to next play the extra animation
             }
             // if the oppoenent is too far away return to the Start state
             if (Vector3.Distance(transform.position, opponent.transform.position) > distanceToDetectOpponent)
@@ -146,39 +175,50 @@ public class KnightManager : MonoBehaviour
         }  
     }
 
-    private void HandleWalkingState() // FINISH
+    private void HandleWalkingState() // this is now defunct but may be re-implemented in the future
     {
         if (animationHandler.CurrentState == AnimationHandler.AnimationState.WALKING)
         {
             currentCharacterState = CharacterStates.Walking; // set the character state to walking
-            armourRustle.Play(); // this only plays on release of button?
-            // play audio
         }
     }
 
-    private void HandleTauntingState() // FINISH
+    /// <summary>
+    /// Handles the Taunting animation state
+    /// </summary>
+    private void HandleTauntingState()
     {
         if (animationHandler.CurrentState == AnimationHandler.AnimationState.TAUNTING)
         {
-            voiceTaunt.Play(); // too slow
-            currentCharacterState = CharacterStates.Taunting; // set the character state to attack
-            knightHealthCurrent = knightHealthCurrent + healAmount;
-            
+            currentCharacterState = CharacterStates.Taunting; // set the character state to attack    
+            if (voiceTaunt.isPlaying == false) // if the audio is not already playing
+            {
+                StopAllAudio(); // resets the audio
+                voiceTaunt.Play(); // play the voice taunt
+            }        
         }
     }
 
+    /// <summary>
+    /// Handles the Attacking animation states
+    /// </summary>
     private void HandleAttackingState()
     {
-        if (animationHandler.CurrentState == AnimationHandler.AnimationState.ATTACKLIGHT || animationHandler.CurrentState == AnimationHandler.AnimationState.ATTACKHEAVY)
+        if (animationHandler.CurrentState == AnimationHandler.AnimationState.ATTACKLIGHT || animationHandler.CurrentState == AnimationHandler.AnimationState.ATTACKHEAVY) // light or heavy attack
         {
-            currentCharacterState = CharacterStates.Attacking; // set the character state to attack
-            swordSwoosh.Play(); // too slow
-            if (animationHandler.CurrentState == AnimationHandler.AnimationState.ATTACKLIGHT)
+            swordCollider.SetActive(true); // activates the sword collider if it is off
+            currentCharacterState = CharacterStates.Attacking; // set the character state to attacking
+            if (swordSwoosh.isPlaying == false)
+            {
+                StopAllAudio();
+                swordSwoosh.Play();
+            }
+            if (animationHandler.CurrentState == AnimationHandler.AnimationState.ATTACKLIGHT) // for the light attack
             {
                 sword.damage = attackLightDMG =  AttackDamage(20, 25); // gets a random number in this range
                 // Debug.Log("Light Attack Damage: " + attackLightDMG);
             }
-            if (animationHandler.CurrentState == AnimationHandler.AnimationState.ATTACKHEAVY)
+            if (animationHandler.CurrentState == AnimationHandler.AnimationState.ATTACKHEAVY) // for the heavy attack
             {
                 sword.damage = attackHeavyDMG = AttackDamage(30, 35);
                 // Debug.Log("Heavy Attack Damage: " + attackHeavyDMG);
@@ -186,125 +226,140 @@ public class KnightManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Generates a random number within the input range for attacks
+    /// </summary>
+    /// <param name="min"></param>
+    /// <param name="max"></param>
+    /// <returns></returns>
     public int AttackDamage(int min, int max)
     {
         return Random.Range(min, max);
     }
 
-    public void ApplyDamage(int damageAmount)
+    /// <summary>
+    /// Handles the amount of damage the Knight takes
+    /// </summary>
+    /// <param name="damageAmount"></param>
+    public void ApplyDamage(int damageAmount) // takes amount of damage from the Sword script when it enters the collider
     {
-        if(currentCharacterState != CharacterStates.Blocking)
+        if (currentCharacterState == CharacterStates.Blocking) // if the Knight is blocking
         {
-            knightHealthCurrent = knightHealthCurrent - damageAmount;
-            // Debug.Log(damageAmount);
+            knightAnimator.Play("Block_Hit"); // plays the shield block animation
+            audioSource.PlayOneShot(shieldhit, 0.25f); // plays the shield hit sound at half volume
+            knightHealthCurrent = knightHealthCurrent - (damageAmount - blockAmount); // reduces the incoming damage by the amount specified
+            // Debug.Log("HIT " + damageAmount + " " + blockAmount);
         }
-        else
+        else // if the Knight is not blocking
         {
-            knightHealthCurrent = knightHealthCurrent - damageAmount + AttackDamage(20, 25); // reduces incoming damage by a random range
-            // Debug.Log(damageAmount);
+            knightHealthCurrent = knightHealthCurrent - damageAmount; // takes the damage amount from the knights current health and updates it
+            HandleHitState(); // executes the on hit animation state
+            // Debug.Log("HIT " + damageAmount);
         }
-
-    }
-
-    void OnTriggerEnter(Collider collider)
-    {
-        if (collider.tag == "Sword")
+        if (knightHealthCurrent > 282) // if the Knight somehow goes over full health
         {
-            if (currentCharacterState == CharacterStates.Blocking)
-            {
-                audioSource.PlayOneShot(shieldhit);
-                knightAnimator.Play("Block_Hit");
-            }
-            else
-            {
-                HandleHitState();
-            }
+            knightHealthCurrent = 282; // return to max health
         }
     }
 
-    private void HandleBlockingState() // FINISH
-    {
-        if (animationHandler.CurrentState == AnimationHandler.AnimationState.BLOCKING)
-        {
-            currentCharacterState = CharacterStates.Blocking; // set the character state to walking
-        }
-    }
-
+    /// <summary>
+    /// Handles the Hit animation state when the Knight's collider is hit by the sword collider
+    /// </summary>
     private void HandleHitState()
     {
         currentCharacterState = CharacterStates.Hit; // set the character state to being hit
         knightAnimator.Play("Hit_Strong"); // plays the hit animation
-        voiceHit.Play();
-        audioSource.PlayOneShot(bodyhit);
+        voiceHit.Play(); // plays the voiceline
+        audioSource.PlayOneShot(bodyhit); // plays the sound effect of the knight being wounded
         GameObject clone = Instantiate(bloodPrefab, bloodPosition.position, bloodPosition.transform.rotation); // create an instance of the blood splatter
-        Destroy(clone, 1); // this destroys the instantiated clone object after 1 second
-        // audioSource.PlayOneShot(fireWorkSound);
+        Destroy(clone, 1); // this destroys the instantiated blood splatter after 1 second
         Invoke("ResetToIdle", 1); // resets to the idle state after the hit animation has played
-        
     }
 
     /// <summary>
-    /// handles the end of the game when one character's health reaches zero or below
+    /// Handles the Blocking animation state
     /// </summary>
-    private void HandleEndState() // FIX audio
+    private void HandleBlockingState()
     {
-        if(knightHealthCurrent <= 0)
+        if (animationHandler.CurrentState == AnimationHandler.AnimationState.BLOCKING)
         {
-            animationHandler.CurrentState = AnimationHandler.AnimationState.DEATH; // set the animation state to end
-            currentCharacterState = CharacterStates.End; // set the character by default to end
-            voiceDeath.Play();
-            knightMoveControls.SetActive(false);
-            knightCombatControls.SetActive(false);
-        }
-        else if (opponent.GetComponent<KnightManager>().knightHealthCurrent <= 0)
-        {
-            animationHandler.CurrentState = AnimationHandler.AnimationState.VICTORY; // set the animation state to end
-            currentCharacterState = CharacterStates.End; // set the character by default to end
-            voiceVictory.Play();
-            knightMoveControls.SetActive(false);
-            knightCombatControls.SetActive(false);
-           
+            currentCharacterState = CharacterStates.Blocking; // set the character state to walking
+            if (voiceBlock.isPlaying == false) // if the audio is not already playing
+            {
+                StopAllAudio(); // resets the audio
+                voiceBlock.Play(); // play the voice taunt
+            }
         }
     }
 
+    /// <summary>
+    /// Handles the end of the game when a Knight's health reaches zero or below
+    /// </summary>
+    private void HandleEndState()
+    {
+        if(knightHealthCurrent <= 0) // if the Knight's health gets to 0 or below
+        {
+            animationHandler.CurrentState = AnimationHandler.AnimationState.DEATH; // set it to the Death animation state
+            currentCharacterState = CharacterStates.End; // set the Knight to the end state
+            swordCollider.SetActive(false); // turns off the sword collider
+            knightCombatControls.SetActive(false); // turns off the combat controls
+            if (voiceDeath.isPlaying == false) // if the voice line is not playing
+            {
+                StopAllAudio(); // reset other audio
+                voiceDeath.Play(); // play it
+            }
+        }
+        else if (opponent.GetComponent<KnightManager>().knightHealthCurrent <= 0) // if the opposing Knight's health get to 0 or below
+        {
+            animationHandler.CurrentState = AnimationHandler.AnimationState.VICTORY; // set it to the Victory animation state
+            currentCharacterState = CharacterStates.End;
+            swordCollider.SetActive(false);
+            knightCombatControls.SetActive(false);
+            if (voiceVictory.isPlaying == false)
+            {
+                StopAllAudio();
+                voiceVictory.PlayDelayed(2); // delays the voiceline so they don't play over each other
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resets the game to the start when a button is pressed
+    /// </summary>
     public void ResetGame()
     {
-        Debug.Log("Game Reset");
-        transform.position = startPosition;
-        knightHealthCurrent = 282;
-        opponent.GetComponent<KnightManager>().knightHealthCurrent = 282;
-        opponent.GetComponent<AnimationHandler>().CurrentState = AnimationHandler.AnimationState.START;
+        // Debug.Log("Game Reset");
+        StopAllAudio(); // resets the audio
+        transform.position = knightTracker.transform.position; // if the Knight has moved return it to the tracker's postion
+        knightHealthCurrent = 282; // reset the health to max health
+        opponent.GetComponent<KnightManager>().knightHealthCurrent = 282; // resets the opponent's health to max health
+        opponent.GetComponent<AnimationHandler>().CurrentState = AnimationHandler.AnimationState.START; // resets the opponents animation state to Start
         knightAnimator.SetBool("VICTORY", false);
         knightAnimator.SetBool("DEATH", false);
-        ResetToStartState();
+        ResetToStartState(); // resets the Knight's state to Start
     }
 
-    public void HelpButton()
-    {
-        if (helpText == false) // will this work on mobile?
-        {
-            canvasHelpText.SetActive(true);
-            helpText = true;
-        }
-        else if (helpText == true)
-        {
-            canvasHelpText.SetActive(false);
-            helpText = false;
-        }
-    }
-
+    /// <summary>
+    /// Reset the Knight to the Idle state
+    /// </summary>
     public void ResetToIdleState()
     {
         animationHandler.CurrentState = AnimationHandler.AnimationState.IDLE;
         currentCharacterState = CharacterStates.Idle;
     }
 
+    /// <summary>
+    /// Resets the Knight to the Start state
+    /// </summary>
     public void ResetToStartState()
     {
         animationHandler.CurrentState = AnimationHandler.AnimationState.START;
         currentCharacterState = CharacterStates.Start;
     }
 
+    /// <summary>
+    /// Allows combar buttons to interrupt extra animation
+    /// </summary>
     public void InterruptAnimation()
     {
         knightAnimator.SetBool("ExitAnim1", true);
@@ -315,6 +370,7 @@ public class KnightManager : MonoBehaviour
         knightAnimator.SetBool("BLOCKING", true);
     }
 
+    // Quick functions for entering and exiting other animations
     public void ExitAnimation()
     {
         knightAnimator.SetBool("ExitAnim1", true);
@@ -322,7 +378,20 @@ public class KnightManager : MonoBehaviour
     }
     public void EnterAnimation()
     {
-        knightAnimator.SetBool("ExitAnim1", false);
+        // knightAnimator.SetBool("ExitAnim1", false);
         knightAnimator.SetBool("ExitAnim2", false);
+    }
+
+    /// <summary>
+    /// Stops the Knight's audio sources
+    /// </summary>
+    void StopAllAudio()
+    {
+        voiceStart.Stop();
+        voiceIdle.Stop();   
+        voiceHit.Stop();
+        voiceVictory.Stop();
+        voiceDeath.Stop();
+        voiceTaunt.Stop();
     }
 }

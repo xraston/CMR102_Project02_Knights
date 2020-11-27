@@ -4,25 +4,21 @@ using UnityEngine;
 
 public class Sword : MonoBehaviour
 {
-    public int damage;
+    public int damage; // the amount of damage the script gets from KnightManager
+    public float damageInterval; // the amount of time to wait between damage instances
+    private float timeTillNextDamage; // the amount of time needed to pass till the next damage instance is applied
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
     void OnTriggerEnter(Collider collider)
     {
-        if (collider.transform.GetComponent<KnightManager>())
+        if(Time.time >= timeTillNextDamage) // prevents the collider from applying multiple damage instances in one sword swing
         {
-            collider.transform.GetComponent<KnightManager>().ApplyDamage(damage);
-            Debug.Log("HIT! " + damage);
+            if (collider.transform.GetComponent<KnightManager>())
+            {
+                    collider.transform.GetComponent<KnightManager>().ApplyDamage(damage);
+                    Debug.Log("HIT! " + damage);
+            }
+            timeTillNextDamage = Time.time + damageInterval; // updates the time difference
         }
+
     }
 }

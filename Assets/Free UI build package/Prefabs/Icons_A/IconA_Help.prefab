@@ -158,7 +158,7 @@ GameObject:
   m_Component:
   - component: {fileID: 224477034907414106}
   m_Layer: 5
-  m_Name: Icon_AHelp
+  m_Name: IconA_Help
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -244,7 +244,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0.5882353, b: 0, a: 0.5882353}
+  m_Color: {r: 0.27058825, g: 0.6627451, b: 0, a: 0.6627451}
   m_RaycastTarget: 1
   m_Maskable: 1
   m_OnCullStateChanged:

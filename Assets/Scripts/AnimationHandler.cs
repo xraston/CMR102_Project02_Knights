@@ -10,11 +10,11 @@ public class AnimationHandler : MonoBehaviour
     public enum AnimationState {START, IDLE, WALKING, ATTACKLIGHT, ATTACKHEAVY, TAUNTING, BLOCKING, HIT, DEATH, VICTORY} // the different animation states
     public AnimationState currentAnimationState; // the current state the animator is in
 
-    public AnimationState CurrentState
+    public AnimationState CurrentState // handles the current animation state
     {
         get
         {
-            return currentAnimationState;
+            return currentAnimationState; // gets the current animation state
         }
         set
         {
@@ -22,11 +22,11 @@ public class AnimationHandler : MonoBehaviour
 
             if(knightAnimator != null)
             {
-                UpdateAnimator();
+                UpdateAnimator(); // switches the animator between states
             }
             else
             {
-                Debug.LogError("No animator has been assigned");
+                Debug.LogError("No animator has been assigned"); // prompts the user to assign an animator
             }
         }
     }
@@ -38,71 +38,61 @@ public class AnimationHandler : MonoBehaviour
     {
         switch(currentAnimationState)
         {
-            case AnimationState.START:
+            case AnimationState.START: // set the animator to the Start animation state
                 {
-                    // reset the animator back to start animation
-                    ResetToIdle();
+                    ResetToIdle(); // reset the animator back to idle
                     knightAnimator.SetBool("START", true);
                     break;
                 }
-            case AnimationState.IDLE:
+            case AnimationState.IDLE: // set the animator to the Idle animation state
                 {
-                    // reset the animator back to idle animation
                     ResetToIdle();
                     break;
                 }
-            case AnimationState.WALKING:
+            case AnimationState.WALKING: // set the animator to the Walking animation state (currently unused)
                 {
-                    // set the animator to the walking animation
                     ResetToIdle();
                     knightAnimator.SetBool("WALKING", true);
                     break;
                 }
-            case AnimationState.ATTACKLIGHT:
+            case AnimationState.ATTACKLIGHT: // set the animator to the Light Attack animation state 
                 {
-                    // set the animator to the light attack animation
                     ResetToIdle();
                     knightAnimator.SetBool("ATTACKLIGHT", true);
                     break;
                 }
-            case AnimationState.ATTACKHEAVY:
+            case AnimationState.ATTACKHEAVY: // set the animator to the Heavy Attack animation state 
                 {
-                    // set the animator to the heavy attack animation
                     ResetToIdle();
                     knightAnimator.SetBool("ATTACKHEAVY", true);
                     break;
                 }
-            case AnimationState.TAUNTING:
+            case AnimationState.TAUNTING: // set the animator to the Taunting animation state 
                 {
-                    // set the animator to the taunting animation
                     ResetToIdle();
                     knightAnimator.SetBool("TAUNTING", true);
                     break;
                 }
-            case AnimationState.BLOCKING:
+            case AnimationState.BLOCKING: // set the animator to the Blocking animation state 
                 {
-                    // set the animator to the blocking animation
                     ResetToIdle();
                     knightAnimator.SetBool("BLOCKING", true);
                     break;
                 }
-            case AnimationState.HIT:
+            case AnimationState.HIT: // set the animator to the Hit animation state 
                 {
-                    // set the animator to the hit animation
                     ResetToIdle();
                     knightAnimator.SetBool("HIT", true);
                     break;
                 }
-            case AnimationState.DEATH:
+            case AnimationState.DEATH: // set the animator to the Death animation state 
                 {
-                    // set the animator to the death animation
                     ResetToIdle();
                     knightAnimator.SetBool("DEATH", true);
                     break;
                 }
-            case AnimationState.VICTORY:
+            case AnimationState.VICTORY: // set the animator to the Victory animation state 
                 {
-                    // set the animator to the victory animation
                     ResetToIdle();
                     knightAnimator.SetBool("VICTORY", true);
                     break;
@@ -116,7 +106,7 @@ public class AnimationHandler : MonoBehaviour
     private void ResetToIdle()
     {
         knightAnimator.SetBool("START", false);
-        knightAnimator.SetBool("WALKING", false);
+        // knightAnimator.SetBool("WALKING", false);
         knightAnimator.SetBool("ATTACKLIGHT", false);
         knightAnimator.SetBool("ATTACKHEAVY", false);
         knightAnimator.SetBool("TAUNTING", false);
